@@ -1,5 +1,5 @@
 import bs4
-from langchain_community.document_loaders import WebBaseLoader
+# from langchain_community.document_loaders import WebBaseLoader
 
 import os
 os.environ['USER_AGENT'] = 'myagent'

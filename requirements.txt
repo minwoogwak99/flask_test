@@ -1,0 +1,5 @@
+Flask
+Flask-CORS
+langchain_ollama
+beautifulsoup4
+bs4
