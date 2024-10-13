@@ -1,9 +1,11 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, Response, stream_with_context
 from flask_cors import CORS
 from langchain_ollama import ChatOllama
 import bs4
+import json
 # from langchain_community.document_loaders import WebBaseLoader
 
+from various.get_text_from_link import get_from_link
 
 app = Flask(__name__)
 CORS(app)
@@ -38,6 +40,34 @@ def aiPost():
     except Exception as e:
         print(f"Error in /ai route: {str(e)}")
         return jsonify({"error": f"Internal server error: {str(e)}"}), 500
+
+
+@app.route('/fromlink', methods=['POST'])
+def fromLink():
+    json_content = request.json
+    if not json_content:
+        return jsonify({"error": "No JSON data provided"}), 400
+
+    query = json_content.get('query')
+    if not query:
+        return jsonify({"error": "No query provided"}), 400
+
+    test_link = "https://lilianweng.github.io/posts/2023-06-23-agent/"
+    return Response(
+        generate_stream(link=test_link, query=query),
+        content_type='application/x-ndjson',  # Set content type to ndjson
+        headers={'Transfer-Encoding': 'chunked'}
+    )
+
+
+def generate_stream(link, query):
+    counter = 1
+    for chunk in get_from_link(link=link, query=query):
+        if chunk:
+            # Convert data to JSON and add newline
+            data_json = json.dumps({counter: chunk})
+            yield (data_json + "\n").encode('utf-8')
+            counter += 1
 
 
 @app.route('/pdf', methods=['POST'])
