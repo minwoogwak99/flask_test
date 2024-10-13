@@ -4,3 +4,4 @@ langchain_ollama
 beautifulsoup4
 bs4
 langchain-google-vertexai
+nest_asyncio

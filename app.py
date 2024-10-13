@@ -1,24 +1,15 @@
-from flask import Flask, request, jsonify, Response, stream_with_context
+from flask import Flask, request, jsonify, Response
 from flask_cors import CORS
 from langchain_ollama import ChatOllama
-import bs4
 import json
+from llms import ollama_llm
 # from langchain_community.document_loaders import WebBaseLoader
 
 from various.get_text_from_link import get_from_link
+from various.get_text_from_link_with_memory import get_from_link_with_memory
 
 app = Flask(__name__)
 CORS(app)
-
-cached_llm = ChatOllama(model="llama3.2")
-
-
-@app.route('/post', methods=['GET'])
-def hello_world():
-    # Check if the request is a POST request
-    if request.method == 'GET':
-        # Return a JSON response
-        return jsonify(message="hello world"), 200
 
 
 @app.route("/ai", methods=["POST"])
@@ -33,7 +24,7 @@ def aiPost():
         if not query:
             return jsonify({"error": "No query provided"}), 400
 
-        response = cached_llm.invoke(query)
+        response = ollama_llm.invoke(query)
         result = response.content
 
         return jsonify({"response": result}), 200
@@ -52,17 +43,22 @@ def fromLink():
     if not query:
         return jsonify({"error": "No query provided"}), 400
 
-    test_link = "https://lilianweng.github.io/posts/2023-06-23-agent/"
+    print(type(query))
+    prevLog = json_content.get('prevLog')
+
+    test_link = ["https://lilianweng.github.io/posts/2023-06-23-agent/",
+                 "https://en.wikipedia.org/wiki/University_of_Illinois_Urbana-Champaign"]
     return Response(
-        generate_stream(link=test_link, query=query),
+        generate_stream(
+            link=test_link, query=query['message'], prev_chat_log=prevLog),
         content_type='application/x-ndjson',  # Set content type to ndjson
         headers={'Transfer-Encoding': 'chunked'}
     )
 
 
-def generate_stream(link, query):
+def generate_stream(link, query, prev_chat_log):
     counter = 1
-    for chunk in get_from_link(link=link, query=query):
+    for chunk in get_from_link_with_memory(link=link, input=query, prev_chat_log=prev_chat_log):
         if chunk:
             # Convert data to JSON and add newline
             data_json = json.dumps({counter: chunk})
